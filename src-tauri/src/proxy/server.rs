@@ -17,6 +17,8 @@ use tokio::sync::{oneshot, RwLock};
 use tokio::task::JoinHandle;
 use tower_http::cors::{Any, CorsLayer};
 
+use super::tps_monitor::{TpsMonitor, DEFAULT_WINDOW_SECS};
+
 /// 代理服务器状态（共享）
 #[derive(Clone)]
 pub struct ProxyState {
@@ -32,6 +34,8 @@ pub struct ProxyState {
     pub app_handle: Option<tauri::AppHandle>,
     /// 故障转移切换管理器
     pub failover_manager: Arc<FailoverSwitchManager>,
+    /// TPS 监控（真实请求滑动窗口聚合）
+    pub tps_monitor: Arc<tokio::sync::Mutex<TpsMonitor>>,
 }
 
 /// 代理HTTP服务器
@@ -63,6 +67,9 @@ impl ProxyServer {
             provider_router,
             app_handle,
             failover_manager,
+            tps_monitor: Arc::new(tokio::sync::Mutex::new(TpsMonitor::new(
+                DEFAULT_WINDOW_SECS,
+            ))),
         };
 
         Self {
@@ -152,6 +159,9 @@ impl ProxyServer {
             }
         }
 
+        // 清理 TPS 监控窗口，避免停止后短时间仍显示旧值
+        self.state.tps_monitor.lock().await.reset();
+
         Ok(())
     }
 
@@ -173,6 +183,9 @@ impl ProxyServer {
                 provider_name: provider_name.clone(),
             })
             .collect();
+
+        // TPS：滑动窗口聚合
+        status.tps = self.state.tps_monitor.lock().await.current_tps();
 
         status
     }

@@ -100,7 +100,29 @@ pub async fn handle_non_streaming(
         );
 
         // 解析使用量
-        if let Some(usage) = (parser_config.response_parser)(&json_value) {
+        let parsed_usage = (parser_config.response_parser)(&json_value);
+
+        // TPS：仅使用 usage.output_tokens（不做估算），按“请求活跃时间”摊销到滑动窗口（仅统计 2xx）
+        if (200..300).contains(&status.as_u16()) {
+            let usage_tokens = parsed_usage
+                .as_ref()
+                .map(|u| u.output_tokens as u64)
+                .unwrap_or(0);
+
+            if usage_tokens > 0 {
+                state
+                    .tps_monitor
+                    .lock()
+                    .await
+                    .record_completed_request(
+                        usage_tokens,
+                        ctx.start_time,
+                        std::time::Instant::now(),
+                    );
+            }
+        }
+
+        if let Some(usage) = parsed_usage {
             // 优先使用 usage 中解析出的模型名称，其次使用响应中的 model 字段，最后回退到请求模型
             let model = if let Some(ref m) = usage.model {
                 m.clone()
@@ -274,8 +296,25 @@ fn create_usage_collector(
             let state = state.clone();
             let provider_id = provider_id.clone();
             let session_id = session_id.clone();
+            let _events_for_tps = events;
 
             tokio::spawn(async move {
+                // TPS：仅使用 usage.output_tokens（不做估算），按“请求活跃时间”摊销到滑动窗口（仅统计 2xx）
+                if (200..300).contains(&status_code) {
+                    let usage_tokens = usage.output_tokens as u64;
+                    if usage_tokens > 0 {
+                        state
+                            .tps_monitor
+                            .lock()
+                            .await
+                            .record_completed_request(
+                                usage_tokens,
+                                start_time,
+                                std::time::Instant::now(),
+                            );
+                    }
+                }
+
                 log_usage_internal(
                     &state,
                     &provider_id,

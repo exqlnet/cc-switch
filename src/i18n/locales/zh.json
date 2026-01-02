@@ -987,6 +987,10 @@
       "waitingFirstRequest": "当前 Provider：等待首次请求…",
       "stoppedTitle": "代理服务已停止",
       "stoppedDescription": "使用右上角开关即可启动服务",
+      "tpsMonitor": {
+        "label": "菜单栏 TPS 监控",
+        "description": "在代理接管开启且服务运行时，在 macOS 菜单栏（控制中心）显示最近 5 秒滑动平均 TPS。"
+      },
       "openSettings": "配置代理服务",
       "stats": {
         "activeConnections": "活跃连接",
