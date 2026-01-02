@@ -987,6 +987,10 @@
       "waitingFirstRequest": "現在のプロバイダー: 最初のリクエスト待ち...",
       "stoppedTitle": "プロキシサービス停止中",
       "stoppedDescription": "右上のトグルでサービスを開始できます",
+      "tpsMonitor": {
+        "label": "メニューバー TPS 監視",
+        "description": "接管が有効でプロキシサービスが稼働中のとき、macOS のメニューバーに直近 5 秒の移動平均 TPS を表示します。"
+      },
       "openSettings": "プロキシサービスを設定",
       "stats": {
         "activeConnections": "アクティブ接続",

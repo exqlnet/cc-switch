@@ -20,6 +20,7 @@ pub mod response_handler;
 pub mod response_processor;
 pub(crate) mod server;
 pub mod session;
+pub(crate) mod tps_monitor;
 pub(crate) mod types;
 pub mod usage;
 

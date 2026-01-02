@@ -28,6 +28,9 @@ pub struct AppSettings {
     pub show_in_tray: bool,
     #[serde(default = "default_minimize_to_tray_on_close")]
     pub minimize_to_tray_on_close: bool,
+    /// 是否在状态栏展示代理 TPS
+    #[serde(default)]
+    pub show_proxy_tps_in_status_bar: bool,
     /// 是否启用 Claude 插件联动
     #[serde(default)]
     pub enable_claude_plugin_integration: bool,
@@ -77,6 +80,7 @@ impl Default for AppSettings {
         Self {
             show_in_tray: true,
             minimize_to_tray_on_close: true,
+            show_proxy_tps_in_status_bar: false,
             enable_claude_plugin_integration: false,
             skip_claude_onboarding: true,
             launch_on_startup: false,

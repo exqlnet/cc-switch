@@ -26,6 +26,8 @@ export interface ProxyStatus {
   last_request_at: string | null;
   last_error: string | null;
   failover_count: number;
+  // 最近 5 秒滑动窗口 TPS（输出 token/秒，空闲为 0）
+  tps: number;
   active_targets?: ActiveTarget[];
 }
 

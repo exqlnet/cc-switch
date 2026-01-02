@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useFailoverQueue } from "@/lib/query/failover";
 import { ProviderHealthBadge } from "@/components/providers/ProviderHealthBadge";
 import { useProviderHealth } from "@/lib/query/failover";
+import { useSaveSettingsMutation, useSettingsQuery } from "@/lib/query";
 import {
   useProxyTakeoverStatus,
   useSetProxyTakeoverForApp,
@@ -29,6 +30,10 @@ import { useTranslation } from "react-i18next";
 export function ProxyPanel() {
   const { t } = useTranslation();
   const { status, isRunning } = useProxyStatus();
+
+  // 设备级设置（用于控制状态栏 TPS 展示）
+  const { data: appSettings } = useSettingsQuery();
+  const saveSettingsMutation = useSaveSettingsMutation();
 
   // 获取应用接管状态
   const { data: takeoverStatus } = useProxyTakeoverStatus();
@@ -119,6 +124,29 @@ export function ProxyPanel() {
     }
   };
 
+  const showProxyTpsInStatusBar = appSettings?.showProxyTpsInStatusBar ?? false;
+
+  const handleProxyTpsToggle = async (enabled: boolean) => {
+    if (!appSettings) return;
+    try {
+      await saveSettingsMutation.mutateAsync({
+        ...appSettings,
+        showProxyTpsInStatusBar: enabled,
+      });
+      toast.success(
+        t("notifications.settingsSaved", { defaultValue: "设置已保存" }),
+        { closeButton: true },
+      );
+    } catch (error) {
+      toast.error(
+        t("notifications.settingsSaveFailed", {
+          defaultValue: "保存设置失败：{{error}}",
+          error: (error as Error)?.message ?? String(error),
+        }),
+      );
+    }
+  };
+
   const formatUptime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -136,6 +164,29 @@ export function ProxyPanel() {
   return (
     <>
       <section className="space-y-6">
+        <div className="rounded-lg border border-border bg-muted/40 p-4">
+          <div className="flex items-center justify-between rounded-md border border-border bg-background/60 px-3 py-2">
+            <div className="space-y-0.5 pr-4">
+              <Label className="text-sm font-medium">
+                {t("proxy.panel.tpsMonitor.label", {
+                  defaultValue: "状态栏 TPS 监控",
+                })}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t("proxy.panel.tpsMonitor.description", {
+                  defaultValue:
+                    "在代理接管开启且服务运行时，在顶部状态栏显示最近 5 秒滑动平均 TPS。",
+                })}
+              </p>
+            </div>
+            <Switch
+              checked={showProxyTpsInStatusBar}
+              onCheckedChange={handleProxyTpsToggle}
+              disabled={!appSettings || saveSettingsMutation.isPending}
+            />
+          </div>
+        </div>
+
         {isRunning && status ? (
           <div className="space-y-6">
             <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-4">

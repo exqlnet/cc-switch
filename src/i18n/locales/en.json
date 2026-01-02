@@ -987,6 +987,10 @@
       "waitingFirstRequest": "Current Provider: Waiting for first request...",
       "stoppedTitle": "Proxy Service Stopped",
       "stoppedDescription": "Use the toggle in the top right to start the service",
+      "tpsMonitor": {
+        "label": "Menu Bar TPS Monitor",
+        "description": "When takeover is enabled and the proxy service is running, show the 5-second rolling-average TPS in the macOS menu bar."
+      },
       "openSettings": "Configure Proxy Service",
       "stats": {
         "activeConnections": "Active Connections",

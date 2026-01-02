@@ -81,6 +81,7 @@ export function useSettingsForm(): UseSettingsFormResult {
       ...data,
       showInTray: data.showInTray ?? true,
       minimizeToTrayOnClose: data.minimizeToTrayOnClose ?? true,
+      showProxyTpsInStatusBar: data.showProxyTpsInStatusBar ?? false,
       enableClaudePluginIntegration:
         data.enableClaudePluginIntegration ?? false,
       skipClaudeOnboarding: data.skipClaudeOnboarding ?? true,
@@ -102,6 +103,7 @@ export function useSettingsForm(): UseSettingsFormResult {
           ({
             showInTray: true,
             minimizeToTrayOnClose: true,
+            showProxyTpsInStatusBar: false,
             enableClaudePluginIntegration: false,
             skipClaudeOnboarding: true,
             language: readPersistedLanguage(),
@@ -132,15 +134,16 @@ export function useSettingsForm(): UseSettingsFormResult {
         serverData.language ?? readPersistedLanguage(),
       );
 
-      const normalized: SettingsFormState = {
-        ...serverData,
-        showInTray: serverData.showInTray ?? true,
-        minimizeToTrayOnClose: serverData.minimizeToTrayOnClose ?? true,
-        enableClaudePluginIntegration:
-          serverData.enableClaudePluginIntegration ?? false,
-        skipClaudeOnboarding: serverData.skipClaudeOnboarding ?? true,
-        claudeConfigDir: sanitizeDir(serverData.claudeConfigDir),
-        codexConfigDir: sanitizeDir(serverData.codexConfigDir),
+    const normalized: SettingsFormState = {
+      ...serverData,
+      showInTray: serverData.showInTray ?? true,
+      minimizeToTrayOnClose: serverData.minimizeToTrayOnClose ?? true,
+      showProxyTpsInStatusBar: serverData.showProxyTpsInStatusBar ?? false,
+      enableClaudePluginIntegration:
+        serverData.enableClaudePluginIntegration ?? false,
+      skipClaudeOnboarding: serverData.skipClaudeOnboarding ?? true,
+      claudeConfigDir: sanitizeDir(serverData.claudeConfigDir),
+      codexConfigDir: sanitizeDir(serverData.codexConfigDir),
         language: normalizedLanguage,
       };
 

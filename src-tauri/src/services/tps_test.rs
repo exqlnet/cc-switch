@@ -410,7 +410,7 @@ impl TpsTestService {
         }
     }
 
-    fn extract_openai_output_text(body: &Value) -> Option<String> {
+    pub(crate) fn extract_openai_output_text(body: &Value) -> Option<String> {
         let choice0 = body.get("choices")?.get(0)?;
         let content = choice0
             .get("message")
@@ -428,7 +428,7 @@ impl TpsTestService {
             .map(|s| s.to_string())
     }
 
-    fn extract_claude_output_text(body: &Value) -> Option<String> {
+    pub(crate) fn extract_claude_output_text(body: &Value) -> Option<String> {
         let content = body.get("content")?;
         match content {
             Value::String(s) => Some(s.to_string()),
@@ -445,7 +445,7 @@ impl TpsTestService {
         }
     }
 
-    fn extract_gemini_output_text(body: &Value) -> Option<String> {
+    pub(crate) fn extract_gemini_output_text(body: &Value) -> Option<String> {
         let candidates = body.get("candidates")?.as_array()?;
         let first = candidates.first()?;
         let parts = first
@@ -462,7 +462,7 @@ impl TpsTestService {
         if out.is_empty() { None } else { Some(out) }
     }
 
-    fn estimate_tokens_by_utf8_bytes(text: &str) -> u64 {
+    pub(crate) fn estimate_tokens_by_utf8_bytes(text: &str) -> u64 {
         let bytes = text.as_bytes().len() as u64;
         (bytes + 3) / 4
     }

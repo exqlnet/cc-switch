@@ -97,10 +97,18 @@ export function EditProviderDialog({
   }, [open, provider?.id, appId, hasLoadedLive, isProxyTakeover]); // 只依赖 provider.id，不依赖整个 provider 对象
 
   const initialSettingsConfig = useMemo(() => {
-    return (liveSettings ?? provider?.settingsConfig ?? {}) as Record<
-      string,
-      unknown
-    >;
+    const ssot = (provider?.settingsConfig ?? {}) as Record<string, unknown>;
+    if (!liveSettings) {
+      return ssot;
+    }
+
+    // live 配置来源于磁盘文件（Claude settings.json / Codex auth.json+config.toml / Gemini .env+settings.json），
+    // 而 custom_headers 是 CC Switch 内部字段，不会写入 live；这里合并回 SSOT 中的 custom_headers，
+    // 确保编辑界面能展示并可持续保存该配置。
+    return {
+      ...liveSettings,
+      ...(ssot.custom_headers ? { custom_headers: ssot.custom_headers } : {}),
+    } as Record<string, unknown>;
   }, [liveSettings, provider?.settingsConfig]); // 只依赖 settingsConfig，不依赖整个 provider
 
   // 固定 initialData，防止 provider 对象更新时重置表单

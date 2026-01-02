@@ -43,7 +43,8 @@ pub async fn health_check() -> (StatusCode, Json<Value>) {
 
 /// 获取服务状态
 pub async fn get_status(State(state): State<ProxyState>) -> Result<Json<ProxyStatus>, ProxyError> {
-    let status = state.status.read().await.clone();
+    let mut status = state.status.read().await.clone();
+    status.tps = state.tps_monitor.lock().await.current_tps();
     Ok(Json(status))
 }
 
@@ -150,8 +151,22 @@ async fn handle_claude_transform(
                     let state = state.clone();
                     let provider_id = provider_id.clone();
                     let model = model.clone();
+                    let usage_tokens = usage.output_tokens as u64;
 
                     tokio::spawn(async move {
+                        // TPS：仅统计 2xx 响应
+                        if (200..300).contains(&status_code) && usage_tokens > 0 {
+                            state
+                                .tps_monitor
+                                .lock()
+                                .await
+                                .record_completed_request(
+                                    usage_tokens,
+                                    start_time,
+                                    std::time::Instant::now(),
+                                );
+                        }
+
                         log_usage(
                             &state,
                             &provider_id,
@@ -235,6 +250,24 @@ async fn handle_claude_transform(
         "[Claude] <<< Anthropic 响应 JSON:\n{}",
         serde_json::to_string_pretty(&anthropic_response).unwrap_or_default()
     );
+
+    // TPS：仅使用 usage.output_tokens（不做估算），按“请求活跃时间”摊销到滑动窗口（仅统计 2xx）
+    if (200..300).contains(&status.as_u16()) {
+        let usage_tokens = TokenUsage::from_claude_response(&anthropic_response)
+            .map(|u| u.output_tokens as u64)
+            .unwrap_or(0);
+        if usage_tokens > 0 {
+            state
+                .tps_monitor
+                .lock()
+                .await
+                .record_completed_request(
+                    usage_tokens,
+                    ctx.start_time,
+                    std::time::Instant::now(),
+                );
+        }
+    }
 
     // 记录使用量
     if let Some(usage) = TokenUsage::from_claude_response(&anthropic_response) {

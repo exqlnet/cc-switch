@@ -51,6 +51,7 @@ use std::sync::Arc;
 #[cfg(target_os = "macos")]
 use tauri::image::Image;
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
+use std::time::Duration;
 use tauri::RunEvent;
 use tauri::{Emitter, Manager};
 
@@ -505,6 +506,66 @@ pub fn run() {
             let _tray = tray_builder.build(app)?;
             // 将同一个实例注入到全局状态，避免重复创建导致的不一致
             app.manage(app_state);
+
+            // ============================================================
+            // 托盘标题（菜单栏）TPS 监控：每 1 秒刷新
+            // ============================================================
+            #[cfg(any(target_os = "macos", target_os = "linux"))]
+            {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let mut last_title: Option<String> = None;
+
+                    loop {
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+
+                        let settings = crate::settings::get_settings();
+                        let enabled = settings.show_proxy_tps_in_status_bar && settings.show_in_tray;
+
+                        let next_title = if enabled {
+                            let state = app_handle.state::<AppState>();
+
+                            let is_running = state.proxy_service.is_running().await;
+                            if !is_running {
+                                None
+                            } else {
+                                let takeover = state.proxy_service.get_takeover_status().await.ok();
+                                let any_takeover = takeover
+                                    .as_ref()
+                                    .map(|s| s.claude || s.codex || s.gemini)
+                                    .unwrap_or(false);
+
+                                if !any_takeover {
+                                    None
+                                } else {
+                                    let status = state.proxy_service.get_status().await.ok();
+                                    let raw_tps = status.map(|s| s.tps).unwrap_or(0.0);
+                                    let tps = if raw_tps.is_finite() && raw_tps > 0.0 {
+                                        raw_tps
+                                    } else {
+                                        0.0
+                                    };
+                                    // 固定长度：00.00（0 时显示 00.00，不显示 0.00）
+                                    Some(format!("TPS {:05.2}", tps))
+                                }
+                            }
+                        } else {
+                            None
+                        };
+
+                        if next_title == last_title {
+                            continue;
+                        }
+                        last_title = next_title.clone();
+
+                        if let Some(tray) = app_handle.tray_by_id("main") {
+                            if let Err(e) = tray.set_title(next_title.as_deref()) {
+                                log::debug!("更新托盘标题失败（忽略）: {e}");
+                            }
+                        }
+                    }
+                });
+            }
 
             // 初始化 SkillService
             match SkillService::new() {
