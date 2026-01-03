@@ -187,6 +187,25 @@ export const handlers = [
 
   http.post(`${TAURI_ENDPOINT}/is_portable_mode`, () => success(false)),
 
+  // ===== 测试模型 / 可用性监控（最小占位）=====
+
+  http.post(`${TAURI_ENDPOINT}/get_stream_check_latest`, () => success(null)),
+
+  http.post(`${TAURI_ENDPOINT}/get_stream_check_history`, () => success([])),
+
+  http.post(`${TAURI_ENDPOINT}/stream_check_provider`, () =>
+    success({
+      status: "operational",
+      success: true,
+      message: "ok",
+      responseTimeMs: 100,
+      httpStatus: 200,
+      modelUsed: "mock-model",
+      testedAt: Math.floor(Date.now() / 1000),
+      retryCount: 0,
+    }),
+  ),
+
   http.post(
     `${TAURI_ENDPOINT}/select_config_directory`,
     async ({ request }) => {

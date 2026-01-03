@@ -1135,6 +1135,22 @@
     "maxRetries": "Max Retries",
     "degradedThreshold": "Degraded Threshold (ms)"
   },
+  "availabilityMonitor": {
+    "label": "Availability",
+    "enable": "Enable availability monitor",
+    "disable": "Disable availability monitor",
+    "toggleFailed": "Failed to toggle availability monitor: {{error}}",
+    "noData": "No availability record (enable monitoring to check periodically)",
+    "operational": "Operational",
+    "degraded": "High latency",
+    "failed": "Unavailable",
+    "status": "Status",
+    "testedAt": "Time",
+    "responseTime": "Latency",
+    "httpStatus": "HTTP",
+    "modelUsed": "Model",
+    "message": "Message"
+  },
   "tpsTest": {
     "testProvider": "TPS Test",
     "tps": "TPS",

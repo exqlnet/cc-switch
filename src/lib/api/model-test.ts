@@ -79,6 +79,27 @@ export async function saveStreamCheckConfig(
   return invoke("save_stream_check_config", { config });
 }
 
+/**
+ * 获取最近一次流式健康检查结果（来自日志）
+ */
+export async function getStreamCheckLatest(
+  appType: AppId,
+  providerId: string,
+): Promise<StreamCheckResult | null> {
+  return invoke("get_stream_check_latest", { appType, providerId });
+}
+
+/**
+ * 获取最近 N 次流式健康检查结果（来自日志）
+ */
+export async function getStreamCheckHistory(
+  appType: AppId,
+  providerId: string,
+  limit: number = 20,
+): Promise<StreamCheckResult[]> {
+  return invoke("get_stream_check_history", { appType, providerId, limit });
+}
+
 // ===== TPS 测试 API =====
 
 /**

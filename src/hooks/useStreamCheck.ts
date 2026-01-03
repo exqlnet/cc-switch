@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import {
@@ -10,6 +11,7 @@ import { useResetCircuitBreaker } from "@/lib/query/failover";
 
 export function useStreamCheck(appId: AppId) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
   const resetCircuitBreaker = useResetCircuitBreaker();
 
@@ -67,6 +69,9 @@ export function useStreamCheck(appId: AppId) {
         );
         return null;
       } finally {
+        queryClient.invalidateQueries({
+          queryKey: ["streamCheckHistory", appId, providerId, 20],
+        });
         setCheckingIds((prev) => {
           const next = new Set(prev);
           next.delete(providerId);
@@ -74,7 +79,7 @@ export function useStreamCheck(appId: AppId) {
         });
       }
     },
-    [appId, t, resetCircuitBreaker],
+    [appId, queryClient, t, resetCircuitBreaker],
   );
 
   const isChecking = useCallback(

@@ -165,6 +165,9 @@ pub struct ProviderMeta {
     /// 每月消费限额（USD）
     #[serde(rename = "limitMonthlyUsd", skip_serializing_if = "Option::is_none")]
     pub limit_monthly_usd: Option<String>,
+    /// 可用性监控开关（每个 Provider 独立，默认关闭）
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub availability_monitor_enabled: Option<bool>,
 }
 
 impl ProviderManager {

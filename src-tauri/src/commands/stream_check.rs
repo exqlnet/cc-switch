@@ -23,7 +23,19 @@ pub async fn stream_check_provider(
         .get(&provider_id)
         .ok_or_else(|| AppError::Message(format!("供应商 {provider_id} 不存在")))?;
 
-    let result = StreamCheckService::check_with_retry(&app_type, provider, &config).await?;
+    let result = match StreamCheckService::check_with_retry(&app_type, provider, &config).await {
+        Ok(r) => r,
+        Err(e) => StreamCheckResult {
+            status: HealthStatus::Failed,
+            success: false,
+            message: e.to_string(),
+            response_time_ms: None,
+            http_status: None,
+            model_used: String::new(),
+            tested_at: chrono::Utc::now().timestamp(),
+            retry_count: 0,
+        },
+    };
 
     // 记录日志
     let _ =
@@ -103,4 +115,30 @@ pub fn save_stream_check_config(
     config: StreamCheckConfig,
 ) -> Result<(), AppError> {
     state.db.save_stream_check_config(&config)
+}
+
+/// 获取最近一次流式健康检查结果（来自日志）
+#[tauri::command]
+pub fn get_stream_check_latest(
+    state: State<'_, AppState>,
+    app_type: AppType,
+    provider_id: String,
+) -> Result<Option<StreamCheckResult>, AppError> {
+    state
+        .db
+        .get_stream_check_latest(&provider_id, app_type.as_str())
+}
+
+/// 获取最近 N 次流式健康检查结果（来自日志，按时间倒序）
+#[tauri::command]
+pub fn get_stream_check_history(
+    state: State<'_, AppState>,
+    app_type: AppType,
+    provider_id: String,
+    limit: u32,
+) -> Result<Vec<StreamCheckResult>, AppError> {
+    let limit = limit.clamp(1, 200);
+    state
+        .db
+        .get_stream_check_history(&provider_id, app_type.as_str(), limit)
 }

@@ -1135,6 +1135,22 @@
     "maxRetries": "最大リトライ回数",
     "degradedThreshold": "劣化しきい値（ミリ秒）"
   },
+  "availabilityMonitor": {
+    "label": "可用性",
+    "enable": "可用性監視を有効化",
+    "disable": "可用性監視を無効化",
+    "toggleFailed": "可用性監視の切り替えに失敗しました: {{error}}",
+    "noData": "可用性の記録がありません（監視を有効にすると定期チェックします）",
+    "operational": "正常",
+    "degraded": "高遅延",
+    "failed": "利用不可",
+    "status": "状態",
+    "testedAt": "時間",
+    "responseTime": "所要時間",
+    "httpStatus": "HTTP",
+    "modelUsed": "モデル",
+    "message": "メッセージ"
+  },
   "tpsTest": {
     "testProvider": "TPS テスト",
     "tps": "TPS",

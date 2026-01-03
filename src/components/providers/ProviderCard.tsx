@@ -15,6 +15,7 @@ import UsageFooter from "@/components/UsageFooter";
 import { ProviderHealthBadge } from "@/components/providers/ProviderHealthBadge";
 import { FailoverPriorityBadge } from "@/components/providers/FailoverPriorityBadge";
 import { useProviderHealth } from "@/lib/query/failover";
+import { useStreamCheckHistory } from "@/lib/query";
 import { useUsageQuery } from "@/lib/query/queries";
 
 interface DragHandleProps {
@@ -38,6 +39,9 @@ interface ProviderCardProps {
   onTpsTest?: (provider: Provider) => void;
   isTpsTesting?: boolean;
   tpsResult?: TpsTestResult;
+  onToggleAvailabilityMonitor?: (provider: Provider) => void;
+  isAvailabilityMonitorEnabled?: boolean;
+  isAvailabilityTogglePending?: boolean;
   isProxyRunning: boolean;
   isProxyTakeover?: boolean; // 代理接管模式（Live配置已被接管，切换为热切换）
   dragHandleProps?: DragHandleProps;
@@ -99,6 +103,9 @@ export function ProviderCard({
   onTpsTest,
   isTpsTesting,
   tpsResult,
+  onToggleAvailabilityMonitor,
+  isAvailabilityMonitorEnabled = false,
+  isAvailabilityTogglePending = false,
   isProxyRunning,
   isProxyTakeover = false,
   dragHandleProps,
@@ -113,6 +120,75 @@ export function ProviderCard({
 
   // 获取供应商健康状态
   const { data: health } = useProviderHealth(provider.id, appId);
+  const { data: streamCheckHistory } = useStreamCheckHistory(
+    provider.id,
+    appId,
+    20,
+  );
+  const latestStreamCheck = streamCheckHistory?.[0];
+
+  const availabilityTooltip = useMemo(() => {
+    if (!latestStreamCheck) {
+      return t("availabilityMonitor.noData", {
+        defaultValue: "暂无可用性记录（开启可用性监控后会定期检查）",
+      });
+    }
+
+    const statusLabel =
+      latestStreamCheck.status === "operational"
+        ? t("availabilityMonitor.operational", { defaultValue: "正常" })
+        : latestStreamCheck.status === "degraded"
+          ? t("availabilityMonitor.degraded", { defaultValue: "延迟高" })
+          : t("availabilityMonitor.failed", { defaultValue: "不可用" });
+
+    const timeText = new Date(latestStreamCheck.testedAt * 1000).toLocaleString();
+    const parts: string[] = [
+      `${t("availabilityMonitor.status", { defaultValue: "状态" })}: ${statusLabel}`,
+      `${t("availabilityMonitor.testedAt", { defaultValue: "时间" })}: ${timeText}`,
+    ];
+
+    if (typeof latestStreamCheck.responseTimeMs === "number") {
+      parts.push(
+        `${t("availabilityMonitor.responseTime", { defaultValue: "耗时" })}: ${latestStreamCheck.responseTimeMs}ms`,
+      );
+    }
+    if (typeof latestStreamCheck.httpStatus === "number") {
+      parts.push(
+        `${t("availabilityMonitor.httpStatus", { defaultValue: "HTTP" })}: ${latestStreamCheck.httpStatus}`,
+      );
+    }
+    if (latestStreamCheck.modelUsed) {
+      parts.push(
+        `${t("availabilityMonitor.modelUsed", { defaultValue: "模型" })}: ${latestStreamCheck.modelUsed}`,
+      );
+    }
+    if (latestStreamCheck.message) {
+      parts.push(
+        `${t("availabilityMonitor.message", { defaultValue: "信息" })}: ${latestStreamCheck.message}`,
+      );
+    }
+
+    return parts.join("\n");
+  }, [latestStreamCheck, t]);
+
+  const availabilityDots = useMemo(() => {
+    const items = streamCheckHistory ?? [];
+    const dots: Array<"operational" | "degraded" | "failed" | "unknown"> =
+      Array.from({ length: 20 }).map(() => "unknown");
+
+    for (let index = 0; index < Math.min(items.length, 20); index++) {
+      const item = items[index];
+      if (!item.success || item.status === "failed") {
+        dots[index] = "failed";
+      } else if (item.status === "degraded") {
+        dots[index] = "degraded";
+      } else {
+        dots[index] = "operational";
+      }
+    }
+
+    return dots;
+  }, [streamCheckHistory]);
 
   const fallbackUrlText = t("provider.notConfigured", {
     defaultValue: "未配置接口地址",
@@ -284,6 +360,29 @@ export function ProviderCard({
               </button>
             )}
 
+            <div
+              className="flex items-center gap-2 text-xs text-muted-foreground max-w-[320px]"
+              title={availabilityTooltip}
+            >
+              <span className="text-[10px]">
+                {t("availabilityMonitor.label", { defaultValue: "可用性" })}
+              </span>
+              <div className="flex items-center gap-1">
+                {availabilityDots.map((dot, index) => (
+                  <span
+                    key={index}
+                    className={cn(
+                      "h-2 w-2 rounded-full",
+                      dot === "operational" && "bg-emerald-500",
+                      dot === "degraded" && "bg-yellow-500",
+                      dot === "failed" && "bg-red-500",
+                      dot === "unknown" && "bg-muted-foreground/30",
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
             {tpsResult && (
               <div
                 className="text-xs text-muted-foreground max-w-[320px]"
@@ -381,11 +480,18 @@ export function ProviderCard({
               isTesting={isTesting}
               isTpsTesting={isTpsTesting}
               isProxyTakeover={isProxyTakeover}
+              isAvailabilityMonitorEnabled={isAvailabilityMonitorEnabled}
+              isAvailabilityTogglePending={isAvailabilityTogglePending}
               onSwitch={() => onSwitch(provider)}
               onEdit={() => onEdit(provider)}
               onDuplicate={() => onDuplicate(provider)}
               onTest={onTest ? () => onTest(provider) : undefined}
               onTpsTest={onTpsTest ? () => onTpsTest(provider) : undefined}
+              onToggleAvailabilityMonitor={
+                onToggleAvailabilityMonitor
+                  ? () => onToggleAvailabilityMonitor(provider)
+                  : undefined
+              }
               onConfigureUsage={() => onConfigureUsage(provider)}
               onDelete={() => onDelete(provider)}
               // 故障转移相关

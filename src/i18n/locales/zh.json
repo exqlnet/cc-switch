@@ -1135,6 +1135,22 @@
     "maxRetries": "最大重试次数",
     "degradedThreshold": "降级阈值（毫秒）"
   },
+  "availabilityMonitor": {
+    "label": "可用性",
+    "enable": "开启可用性监控",
+    "disable": "关闭可用性监控",
+    "toggleFailed": "切换可用性监控失败: {{error}}",
+    "noData": "暂无可用性记录（开启可用性监控后会定期检查）",
+    "operational": "正常",
+    "degraded": "延迟高",
+    "failed": "不可用",
+    "status": "状态",
+    "testedAt": "时间",
+    "responseTime": "耗时",
+    "httpStatus": "HTTP",
+    "modelUsed": "模型",
+    "message": "信息"
+  },
   "tpsTest": {
     "testProvider": "TPS 测试",
     "tps": "TPS",
