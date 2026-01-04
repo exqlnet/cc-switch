@@ -17,7 +17,6 @@ import { Search, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Provider } from "@/types";
 import type { AppId } from "@/lib/api";
-import { providersApi } from "@/lib/api";
 import type { TpsTestResult } from "@/lib/api/model-test";
 import { useDragSort } from "@/hooks/useDragSort";
 import { useStreamCheck } from "@/hooks/useStreamCheck";
@@ -34,8 +33,6 @@ import {
 import { useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 
 interface ProviderListProps {
   providers: Record<string, Provider>;
@@ -71,7 +68,6 @@ export function ProviderList({
   activeProviderId,
 }: ProviderListProps) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const { sortedProviders, sensors, handleDragEnd } = useDragSort(
     providers,
     appId,
@@ -137,44 +133,6 @@ export function ProviderList({
   const handleTpsTest = (provider: Provider) => {
     testTps(provider.id, provider.name);
   };
-
-  const [availabilityTogglingIds, setAvailabilityTogglingIds] = useState<
-    Set<string>
-  >(new Set());
-
-  const handleToggleAvailabilityMonitor = useCallback(
-    async (provider: Provider) => {
-      const enabled = provider.meta?.availability_monitor_enabled ?? false;
-      setAvailabilityTogglingIds((prev) => new Set(prev).add(provider.id));
-
-      try {
-        const updated: Provider = {
-          ...provider,
-          meta: {
-            ...provider.meta,
-            availability_monitor_enabled: !enabled,
-          },
-        };
-
-        await providersApi.update(updated, appId);
-        await queryClient.invalidateQueries({ queryKey: ["providers", appId] });
-      } catch (e) {
-        toast.error(
-          t("availabilityMonitor.toggleFailed", {
-            defaultValue: "切换可用性监控失败: {{error}}",
-            error: String(e),
-          }),
-        );
-      } finally {
-        setAvailabilityTogglingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(provider.id);
-          return next;
-        });
-      }
-    },
-    [appId, queryClient, t],
-  );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -264,13 +222,6 @@ export function ProviderList({
               onTpsTest={handleTpsTest}
               isTpsTesting={isTpsTesting(provider.id)}
               tpsResult={getLastResult(provider.id)}
-              onToggleAvailabilityMonitor={handleToggleAvailabilityMonitor}
-              isAvailabilityMonitorEnabled={
-                provider.meta?.availability_monitor_enabled ?? false
-              }
-              isAvailabilityTogglePending={availabilityTogglingIds.has(
-                provider.id,
-              )}
               isProxyRunning={isProxyRunning}
               isProxyTakeover={isProxyTakeover}
               // 故障转移相关：联动状态
@@ -382,9 +333,6 @@ interface SortableProviderCardProps {
   onTpsTest: (provider: Provider) => void;
   isTpsTesting: boolean;
   tpsResult?: TpsTestResult;
-  onToggleAvailabilityMonitor: (provider: Provider) => void;
-  isAvailabilityMonitorEnabled: boolean;
-  isAvailabilityTogglePending: boolean;
   isProxyRunning: boolean;
   isProxyTakeover: boolean;
   // 故障转移相关
@@ -410,9 +358,6 @@ function SortableProviderCard({
   onTpsTest,
   isTpsTesting,
   tpsResult,
-  onToggleAvailabilityMonitor,
-  isAvailabilityMonitorEnabled,
-  isAvailabilityTogglePending,
   isProxyRunning,
   isProxyTakeover,
   isAutoFailoverEnabled,
@@ -454,9 +399,6 @@ function SortableProviderCard({
         onTpsTest={onTpsTest}
         isTpsTesting={isTpsTesting}
         tpsResult={tpsResult}
-        onToggleAvailabilityMonitor={onToggleAvailabilityMonitor}
-        isAvailabilityMonitorEnabled={isAvailabilityMonitorEnabled}
-        isAvailabilityTogglePending={isAvailabilityTogglePending}
         isProxyRunning={isProxyRunning}
         isProxyTakeover={isProxyTakeover}
         dragHandleProps={{

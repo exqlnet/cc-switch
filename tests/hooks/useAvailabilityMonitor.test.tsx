@@ -79,4 +79,45 @@ describe("useAvailabilityMonitor", () => {
       queryKey: ["streamCheckHistory", "claude", "a", 20],
     });
   });
+
+  it("stops scheduling checks when provider is disabled", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    streamCheckProviderMock.mockResolvedValue({
+      status: "operational",
+      success: true,
+      message: "ok",
+      testedAt: Math.floor(Date.now() / 1000),
+      retryCount: 0,
+      modelUsed: "mock",
+    });
+
+    const { wrapper } = createWrapper();
+    const providersEnabled: Record<string, Provider> = {
+      a: {
+        id: "a",
+        name: "A",
+        settingsConfig: {},
+        meta: { availability_monitor_enabled: true },
+      },
+    };
+
+    const { rerender } = renderHook(
+      ({ providers }) => useAvailabilityMonitor("claude", providers),
+      { wrapper, initialProps: { providers: providersEnabled } },
+    );
+
+    await vi.runOnlyPendingTimersAsync();
+    expect(streamCheckProviderMock).toHaveBeenCalled();
+    const baselineCalls = streamCheckProviderMock.mock.calls.length;
+
+    const providersDisabled: Record<string, Provider> = {
+      a: { ...providersEnabled.a, meta: { availability_monitor_enabled: false } },
+    };
+
+    rerender({ providers: providersDisabled });
+    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.runOnlyPendingTimersAsync();
+
+    expect(streamCheckProviderMock.mock.calls.length).toBe(baselineCalls);
+  });
 });

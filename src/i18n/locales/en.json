@@ -1137,6 +1137,8 @@
   },
   "availabilityMonitor": {
     "label": "Availability",
+    "formLabel": "Availability Monitor",
+    "formHint": "When enabled, a streaming health check runs every 60 seconds silently for this provider.",
     "enable": "Enable availability monitor",
     "disable": "Disable availability monitor",
     "toggleFailed": "Failed to toggle availability monitor: {{error}}",

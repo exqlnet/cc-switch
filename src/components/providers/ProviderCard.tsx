@@ -39,9 +39,6 @@ interface ProviderCardProps {
   onTpsTest?: (provider: Provider) => void;
   isTpsTesting?: boolean;
   tpsResult?: TpsTestResult;
-  onToggleAvailabilityMonitor?: (provider: Provider) => void;
-  isAvailabilityMonitorEnabled?: boolean;
-  isAvailabilityTogglePending?: boolean;
   isProxyRunning: boolean;
   isProxyTakeover?: boolean; // 代理接管模式（Live配置已被接管，切换为热切换）
   dragHandleProps?: DragHandleProps;
@@ -103,9 +100,6 @@ export function ProviderCard({
   onTpsTest,
   isTpsTesting,
   tpsResult,
-  onToggleAvailabilityMonitor,
-  isAvailabilityMonitorEnabled = false,
-  isAvailabilityTogglePending = false,
   isProxyRunning,
   isProxyTakeover = false,
   dragHandleProps,
@@ -117,6 +111,8 @@ export function ProviderCard({
   activeProviderId,
 }: ProviderCardProps) {
   const { t } = useTranslation();
+  const availabilityMonitorEnabled =
+    provider.meta?.availability_monitor_enabled === true;
 
   // 获取供应商健康状态
   const { data: health } = useProviderHealth(provider.id, appId);
@@ -124,10 +120,14 @@ export function ProviderCard({
     provider.id,
     appId,
     20,
+    { enabled: availabilityMonitorEnabled },
   );
   const latestStreamCheck = streamCheckHistory?.[0];
 
   const availabilityTooltip = useMemo(() => {
+    if (!availabilityMonitorEnabled) {
+      return "";
+    }
     if (!latestStreamCheck) {
       return t("availabilityMonitor.noData", {
         defaultValue: "暂无可用性记录（开启可用性监控后会定期检查）",
@@ -169,9 +169,12 @@ export function ProviderCard({
     }
 
     return parts.join("\n");
-  }, [latestStreamCheck, t]);
+  }, [availabilityMonitorEnabled, latestStreamCheck, t]);
 
   const availabilityDots = useMemo(() => {
+    if (!availabilityMonitorEnabled) {
+      return [];
+    }
     const items = streamCheckHistory ?? [];
     const dots: Array<"operational" | "degraded" | "failed" | "unknown"> =
       Array.from({ length: 20 }).map(() => "unknown");
@@ -188,7 +191,7 @@ export function ProviderCard({
     }
 
     return dots;
-  }, [streamCheckHistory]);
+  }, [availabilityMonitorEnabled, streamCheckHistory]);
 
   const fallbackUrlText = t("provider.notConfigured", {
     defaultValue: "未配置接口地址",
@@ -360,28 +363,30 @@ export function ProviderCard({
               </button>
             )}
 
-            <div
-              className="flex items-center gap-2 text-xs text-muted-foreground max-w-[320px]"
-              title={availabilityTooltip}
-            >
-              <span className="text-[10px]">
-                {t("availabilityMonitor.label", { defaultValue: "可用性" })}
-              </span>
-              <div className="flex items-center gap-1">
-                {availabilityDots.map((dot, index) => (
-                  <span
-                    key={index}
-                    className={cn(
-                      "h-2 w-2 rounded-full",
-                      dot === "operational" && "bg-emerald-500",
-                      dot === "degraded" && "bg-yellow-500",
-                      dot === "failed" && "bg-red-500",
-                      dot === "unknown" && "bg-muted-foreground/30",
-                    )}
-                  />
-                ))}
+            {availabilityMonitorEnabled && (
+              <div
+                className="flex items-center gap-2 text-xs text-muted-foreground max-w-[320px]"
+                title={availabilityTooltip}
+              >
+                <span className="text-[10px]">
+                  {t("availabilityMonitor.label", { defaultValue: "可用性" })}
+                </span>
+                <div className="flex items-center gap-1">
+                  {availabilityDots.map((dot, index) => (
+                    <span
+                      key={index}
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        dot === "operational" && "bg-emerald-500",
+                        dot === "degraded" && "bg-yellow-500",
+                        dot === "failed" && "bg-red-500",
+                        dot === "unknown" && "bg-muted-foreground/30",
+                      )}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {tpsResult && (
               <div
@@ -480,18 +485,11 @@ export function ProviderCard({
               isTesting={isTesting}
               isTpsTesting={isTpsTesting}
               isProxyTakeover={isProxyTakeover}
-              isAvailabilityMonitorEnabled={isAvailabilityMonitorEnabled}
-              isAvailabilityTogglePending={isAvailabilityTogglePending}
               onSwitch={() => onSwitch(provider)}
               onEdit={() => onEdit(provider)}
               onDuplicate={() => onDuplicate(provider)}
               onTest={onTest ? () => onTest(provider) : undefined}
               onTpsTest={onTpsTest ? () => onTpsTest(provider) : undefined}
-              onToggleAvailabilityMonitor={
-                onToggleAvailabilityMonitor
-                  ? () => onToggleAvailabilityMonitor(provider)
-                  : undefined
-              }
               onConfigureUsage={() => onConfigureUsage(provider)}
               onDelete={() => onDelete(provider)}
               // 故障转移相关

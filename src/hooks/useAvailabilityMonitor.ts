@@ -14,6 +14,8 @@ export function useAvailabilityMonitor(
 ) {
   const queryClient = useQueryClient();
   const cancelRef = useRef(false);
+  const enabledProviderIdSetRef = useRef<Set<string>>(new Set());
+  const generationRef = useRef(0);
   const inFlightRef = useRef<Set<string>>(new Set());
   const lastRunAtRef = useRef<Record<string, number>>({});
 
@@ -22,6 +24,10 @@ export function useAvailabilityMonitor(
       .filter((provider) => provider.meta?.availability_monitor_enabled === true)
       .map((provider) => provider.id);
   }, [providers]);
+
+  useEffect(() => {
+    enabledProviderIdSetRef.current = new Set(enabledProviderIds);
+  }, [enabledProviderIds]);
 
   useEffect(() => {
     cancelRef.current = false;
@@ -37,6 +43,10 @@ export function useAvailabilityMonitor(
 
     const runChecks = async () => {
       const now = Date.now();
+      const myGeneration = generationRef.current;
+      const shouldStop = () =>
+        cancelRef.current || generationRef.current !== myGeneration;
+
       const queue = enabledProviderIds.filter((providerId) => {
         if (inFlightRef.current.has(providerId)) return false;
         const lastRunAt = lastRunAtRef.current[providerId] ?? 0;
@@ -46,15 +56,24 @@ export function useAvailabilityMonitor(
       if (queue.length === 0) return;
 
       const worker = async () => {
-        while (!cancelRef.current) {
+        while (!shouldStop()) {
           const providerId = queue.shift();
           if (!providerId) return;
           if (inFlightRef.current.has(providerId)) continue;
+          if (!enabledProviderIdSetRef.current.has(providerId)) {
+            continue;
+          }
 
           inFlightRef.current.add(providerId);
           lastRunAtRef.current[providerId] = Date.now();
 
           try {
+            if (shouldStop()) {
+              return;
+            }
+            if (!enabledProviderIdSetRef.current.has(providerId)) {
+              continue;
+            }
             await streamCheckProvider(appId, providerId);
           } catch (e) {
             // 监控过程完全静默：不弹 Toast，仅记录到控制台，避免打扰用户
@@ -65,9 +84,11 @@ export function useAvailabilityMonitor(
             });
           } finally {
             inFlightRef.current.delete(providerId);
-            queryClient.invalidateQueries({
-              queryKey: ["streamCheckHistory", appId, providerId, HISTORY_LIMIT],
-            });
+            if (enabledProviderIdSetRef.current.has(providerId)) {
+              queryClient.invalidateQueries({
+                queryKey: ["streamCheckHistory", appId, providerId, HISTORY_LIMIT],
+              });
+            }
           }
         }
       };
@@ -89,9 +110,9 @@ export function useAvailabilityMonitor(
     }, MONITOR_INTERVAL_MS);
 
     return () => {
+      generationRef.current += 1;
       window.clearTimeout(initialTimer);
       window.clearInterval(interval);
     };
   }, [appId, enabledProviderIds, queryClient]);
 }
-

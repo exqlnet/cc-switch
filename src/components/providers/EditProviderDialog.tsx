@@ -150,8 +150,10 @@ export function EditProviderDialog({
         icon: values.icon?.trim() || undefined,
         iconColor: values.iconColor?.trim() || undefined,
         ...(values.presetCategory ? { category: values.presetCategory } : {}),
-        // 保留或更新 meta 字段
-        ...(values.meta ? { meta: values.meta } : {}),
+        // 保留或更新 meta 字段（避免覆盖编辑过程中可能被单独更新的 custom_endpoints 等字段）
+        ...(values.meta
+          ? { meta: { ...(provider.meta ?? {}), ...values.meta } }
+          : {}),
       };
 
       await onSubmit(updatedProvider);

@@ -1,5 +1,4 @@
 import {
-  Activity,
   BarChart3,
   Check,
   Copy,
@@ -20,14 +19,11 @@ interface ProviderActionsProps {
   isTesting?: boolean;
   isTpsTesting?: boolean;
   isProxyTakeover?: boolean;
-  isAvailabilityMonitorEnabled?: boolean;
-  isAvailabilityTogglePending?: boolean;
   onSwitch: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
   onTest?: () => void;
   onTpsTest?: () => void;
-  onToggleAvailabilityMonitor?: () => void;
   onConfigureUsage: () => void;
   onDelete: () => void;
   // 故障转移相关
@@ -41,14 +37,11 @@ export function ProviderActions({
   isTesting,
   isTpsTesting,
   isProxyTakeover = false,
-  isAvailabilityMonitorEnabled = false,
-  isAvailabilityTogglePending = false,
   onSwitch,
   onEdit,
   onDuplicate,
   onTest,
   onTpsTest,
-  onToggleAvailabilityMonitor,
   onConfigureUsage,
   onDelete,
   // 故障转移相关
@@ -186,29 +179,6 @@ export function ProviderActions({
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Gauge className="h-4 w-4" />
-            )}
-          </Button>
-        )}
-
-        {onToggleAvailabilityMonitor && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={onToggleAvailabilityMonitor}
-            disabled={isAvailabilityTogglePending}
-            title={isAvailabilityMonitorEnabled
-              ? t("availabilityMonitor.disable", { defaultValue: "关闭可用性监控" })
-              : t("availabilityMonitor.enable", { defaultValue: "开启可用性监控" })}
-            className={cn(
-              iconButtonClass,
-              isAvailabilityMonitorEnabled &&
-                "text-emerald-600 dark:text-emerald-400",
-            )}
-          >
-            {isAvailabilityTogglePending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Activity className="h-4 w-4" />
             )}
           </Button>
         )}

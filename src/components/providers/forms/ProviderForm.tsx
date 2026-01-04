@@ -40,6 +40,7 @@ import { ClaudeFormFields } from "./ClaudeFormFields";
 import { CodexFormFields } from "./CodexFormFields";
 import { GeminiFormFields } from "./GeminiFormFields";
 import { Plus, Trash2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   useProviderCategory,
   useApiKeyState,
@@ -115,6 +116,8 @@ export function ProviderForm({
 }: ProviderFormProps) {
   const { t } = useTranslation();
   const isEditMode = Boolean(initialData);
+  const initialAvailabilityMonitorEnabled =
+    initialData?.meta?.availability_monitor_enabled === true;
 
   const buildCustomHeaderRows = useCallback(
     (raw: unknown): CustomHeaderRow[] => {
@@ -147,6 +150,9 @@ export function ProviderForm({
   const [isEndpointModalOpen, setIsEndpointModalOpen] = useState(false);
   const [isCodexEndpointModalOpen, setIsCodexEndpointModalOpen] =
     useState(false);
+  const [availabilityMonitorEnabled, setAvailabilityMonitorEnabled] = useState(
+    initialAvailabilityMonitorEnabled,
+  );
 
   // 新建供应商：收集端点测速弹窗中的"自定义端点"，提交时一次性落盘到 meta.custom_endpoints
   // 编辑供应商：端点已通过 API 直接保存，不再需要此状态
@@ -181,7 +187,8 @@ export function ProviderForm({
         (initialData?.settingsConfig as any)?.custom_headers,
       ),
     );
-  }, [appId, buildCustomHeaderRows, initialData]);
+    setAvailabilityMonitorEnabled(initialAvailabilityMonitorEnabled);
+  }, [appId, buildCustomHeaderRows, initialAvailabilityMonitorEnabled, initialData]);
 
   const defaultValues: ProviderFormData = useMemo(
     () => ({
@@ -700,6 +707,17 @@ export function ProviderForm({
       }
     }
 
+    const shouldWriteAvailabilityMonitorEnabled = isEditMode
+      ? availabilityMonitorEnabled !== initialAvailabilityMonitorEnabled
+      : availabilityMonitorEnabled === true;
+
+    if (shouldWriteAvailabilityMonitorEnabled) {
+      payload.meta = {
+        ...(payload.meta ?? {}),
+        availability_monitor_enabled: availabilityMonitorEnabled,
+      };
+    }
+
     onSubmit(payload);
   };
 
@@ -887,6 +905,26 @@ export function ProviderForm({
 
         {/* 基础字段 */}
         <BasicFormFields form={form} />
+
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-background/60 p-4">
+          <div className="space-y-1">
+            <FormLabel>
+              {t("availabilityMonitor.formLabel", {
+                defaultValue: "可用性监控",
+              })}
+            </FormLabel>
+            <p className="text-xs text-muted-foreground">
+              {t("availabilityMonitor.formHint", {
+                defaultValue:
+                  "开启后将定期（每 60 秒）对该 Provider 进行流式健康检查，过程静默不弹提示。",
+              })}
+            </p>
+          </div>
+          <Switch
+            checked={availabilityMonitorEnabled}
+            onCheckedChange={setAvailabilityMonitorEnabled}
+          />
+        </div>
 
         {/* Claude 专属字段 */}
         {appId === "claude" && (

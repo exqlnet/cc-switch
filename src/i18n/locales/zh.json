@@ -1137,6 +1137,8 @@
   },
   "availabilityMonitor": {
     "label": "可用性",
+    "formLabel": "可用性监控",
+    "formHint": "开启后将定期（每 60 秒）对该 Provider 进行流式健康检查，过程静默不弹提示。",
     "enable": "开启可用性监控",
     "disable": "关闭可用性监控",
     "toggleFailed": "切换可用性监控失败: {{error}}",
